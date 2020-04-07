@@ -10,19 +10,27 @@ import (
 	"github.com/cloudflare/cfssl/cli/genkey"
 	"github.com/cloudflare/cfssl/cli/sign"
 	"github.com/cloudflare/cfssl/csr"
+	"github.com/cloudflare/cfssl/initca"
 	"github.com/cloudflare/cfssl/signer"
 
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/helper/validation"
 )
 
-func resourceCert() *schema.Resource {
+func resourceFullChain() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceCertCreate,
-		Read:   resourceCertRead,
-		Delete: resourceCertDelete,
+		Create: resourceFullChainCreate,
+		Read:   resourceFullChainRead,
+		Delete: resourceFullChainDelete,
 
 		Schema: map[string]*schema.Schema{
+			"ca_csr_json": {
+				Type:             schema.TypeString,
+				Required:         true,
+				ForceNew:         true,
+				ValidateFunc:     validation.ValidateJsonString,
+				DiffSuppressFunc: jsonDiffSuppress,
+			},
 			"csr_json": {
 				Type:             schema.TypeString,
 				Required:         true,
@@ -32,13 +40,15 @@ func resourceCert() *schema.Resource {
 			},
 			"ca_cert": {
 				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
+				Computed: true,
+			},
+			"ca_csr": {
+				Type:     schema.TypeString,
+				Computed: true,
 			},
 			"ca_key": {
 				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
+				Computed: true,
 			},
 			"cert": {
 				Type:     schema.TypeString,
@@ -56,14 +66,32 @@ func resourceCert() *schema.Resource {
 	}
 }
 
-func resourceCertCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceFullChainCreate(d *schema.ResourceData, meta interface{}) error {
+	caCsrJson := []byte(d.Get("ca_csr_json").(string))
+	ca_req := csr.CertificateRequest{
+		KeyRequest: csr.NewKeyRequest(),
+	}
+	ca_err := json.Unmarshal(caCsrJson, &ca_req)
+	if ca_err != nil {
+		return ca_err
+	}
+
+	ca_cert, ca_csrBytes, ca_key, err := initca.New(&ca_req)
+	if err != nil {
+		return err
+	}
+
+	d.Set("ca_cert", string(ca_cert))
+	d.Set("ca_csr", string(ca_csrBytes))
+	d.Set("ca_key", string(ca_key))
+
 	csrJson := []byte(d.Get("csr_json").(string))
 	req := csr.CertificateRequest{
 		KeyRequest: csr.NewKeyRequest(),
 	}
-	err := json.Unmarshal(csrJson, &req)
-	if err != nil {
-		return err
+	csr_err := json.Unmarshal(csrJson, &req)
+	if csr_err != nil {
+		return csr_err
 	}
 
 	tmpCAFile, err := ioutil.TempFile("", "ca")
@@ -109,14 +137,17 @@ func resourceCertCreate(d *schema.ResourceData, meta interface{}) error {
 	d.Set("cert", string(cert))
 	d.Set("csr", string(csrBytes))
 	d.Set("key", string(key))
+	d.Set("ca_cert", "")
+	d.Set("ca_key", "")
+	d.Set("ca_csr", "")
 
 	return nil
 }
 
-func resourceCertRead(d *schema.ResourceData, meta interface{}) error {
+func resourceFullChainRead(d *schema.ResourceData, meta interface{}) error {
 	return nil
 }
 
-func resourceCertDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceFullChainDelete(d *schema.ResourceData, meta interface{}) error {
 	return nil
 }

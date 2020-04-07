@@ -13,6 +13,7 @@ func Provider() terraform.ResourceProvider {
 		ResourcesMap: map[string]*schema.Resource{
 			"cfssl_cert":                resourceCert(),
 			"cfssl_self_signed_ca_cert": resourceSelfSignedCACert(),
+			"cfssl_full_chain_cert":     resourceFullChain(),
 		},
 
 		DataSourcesMap: map[string]*schema.Resource{},

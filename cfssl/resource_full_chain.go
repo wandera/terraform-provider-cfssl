@@ -3,7 +3,7 @@ package cfssl
 import (
 	"encoding/json"
 	"io/ioutil"
-	"os"
+	//"os"
 	"time"
 
 	"github.com/cloudflare/cfssl/cli"
@@ -24,6 +24,11 @@ func resourceFullChain() *schema.Resource {
 		Delete: resourceFullChainDelete,
 
 		Schema: map[string]*schema.Schema{
+			"cert_id": {
+				Type:     schema.TypeString,
+				Required: true,
+				ForceNew: true,
+			},
 			"ca_csr_json": {
 				Type:             schema.TypeString,
 				Required:         true,
@@ -94,21 +99,16 @@ func resourceFullChainCreate(d *schema.ResourceData, meta interface{}) error {
 		return csr_err
 	}
 
-	tmpCAFile, err := ioutil.TempFile("", "ca")
-	if err != nil {
-		return err
+	ca_cert_filename := "/tmp/" + d.Get("cert_id").(string) + "_ca.crt"
+	ca_cert_w_err := ioutil.WriteFile(ca_cert_filename, []byte(d.Get("ca_cert").(string)), 0600)
+	if ca_cert_w_err != nil {
+		return ca_cert_w_err
 	}
-	defer os.Remove(tmpCAFile.Name())
-	if _, err := tmpCAFile.Write([]byte(d.Get("ca_cert").(string))); err != nil {
-		return err
-	}
-	tmpCAKeyFile, err := ioutil.TempFile("", "ca-key")
-	if err != nil {
-		return err
-	}
-	defer os.Remove(tmpCAKeyFile.Name())
-	if _, err := tmpCAKeyFile.Write([]byte(d.Get("ca_key").(string))); err != nil {
-		return err
+
+	ca_key_filename := "/tmp/" + d.Get("cert_id").(string) + "_ca.key"
+	ca_key_w_err := ioutil.WriteFile(ca_key_filename, []byte(d.Get("ca_key").(string)), 0600)
+	if ca_key_w_err != nil {
+		return ca_key_w_err
 	}
 
 	g := &csr.Generator{Validator: genkey.Validator}
@@ -118,8 +118,8 @@ func resourceFullChainCreate(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	c := cli.Config{
-		CAFile:    tmpCAFile.Name(),
-		CAKeyFile: tmpCAKeyFile.Name(),
+		CAFile:    ca_cert_filename,
+		CAKeyFile: ca_key_filename,
 	}
 	s, err := sign.SignerFromConfig(c)
 	if err != nil {
@@ -133,7 +133,7 @@ func resourceFullChainCreate(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
-	d.SetId(time.Now().UTC().String())
+	d.SetId(d.Get("cert_id").(string) + " - " + time.Now().UTC().String())
 	d.Set("cert", string(cert))
 	d.Set("csr", string(csrBytes))
 	d.Set("key", string(key))

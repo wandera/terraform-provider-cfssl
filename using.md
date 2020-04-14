@@ -54,3 +54,24 @@ The following attributes are exported in addition to the above configuration:
 * `cert` - (string) The output ertificate
 * `csr` - (string) The output CSR in PEM format
 * `key` - (string) The output private key
+
+### `cfssl_full_chain_cert`
+
+Generate a certificate and private key signed by a CA generated in the same run.
+CA clear text contents are removed from the state file
+See [CloudFlare's documentation](https://github.com/cloudflare/cfssl#generating-a-local-issued-certificate-and-private-key).
+
+#### Argument Reference
+
+The following arguments are supported:
+
+* `ca_csr_json` - (Required, string) The CA request as a JSON string.
+* `csr_json` - (Required, string) The server cert request as a JSON string.
+
+#### Attributes Reference
+
+The following attributes are exported in addition to the above configuration:
+
+* `cert` - (string) The output ertificate
+* `csr` - (string) The output CSR in PEM format
+* `key` - (string) The output private key

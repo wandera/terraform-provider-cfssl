@@ -59,7 +59,7 @@ func resourceCert() *schema.Resource {
 func resourceCertCreate(d *schema.ResourceData, meta interface{}) error {
 	csrJson := []byte(d.Get("csr_json").(string))
 	req := csr.CertificateRequest{
-		KeyRequest: csr.NewBasicKeyRequest(),
+		KeyRequest: csr.NewKeyRequest(),
 	}
 	err := json.Unmarshal(csrJson, &req)
 	if err != nil {

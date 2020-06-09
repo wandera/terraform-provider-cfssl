@@ -14,6 +14,8 @@ import (
 
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/helper/validation"
+
+	"github.com/matryer/try"
 )
 
 func resourceCertFromKey() *schema.Resource {
@@ -177,7 +179,7 @@ func resourceCertFromKeyCreate(d *schema.ResourceData, meta interface{}) error {
       return err
   }
 
-	if d.Get("onepass_vault").(string) != ""{
+	if meta != nil && d.Get("onepass_vault").(string) != ""{
 		item := &Item{
 			Vault:    d.Get("onepass_vault").(string),
 			Template: Category2Template(SecureNoteCategory),
@@ -189,7 +191,14 @@ func resourceCertFromKeyCreate(d *schema.ResourceData, meta interface{}) error {
 			},
 		}
 		m := meta.(*Meta)
-		err = m.onePassClient.CreateItem(item)
+		//err = m.onePassClient.CreateItem(item)
+
+		err = try.Do(func(attempt int) (bool, error) {
+		  var err error
+		  err = m.onePassClient.CreateItem(item)
+		  return attempt < 5, err // try 5 times
+		})
+
 		if err != nil {
 			return err
 		}

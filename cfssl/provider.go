@@ -57,6 +57,7 @@ func Provider() terraform.ResourceProvider {
 			"cfssl_cert":                             resourceCert(),
 			"cfssl_cert_from_key":                    resourceCertFromKey(),
 			"cfssl_self_signed_ca_cert":              resourceSelfSignedCACert(),
+			"cfssl_self_signed_ca_cert_onepass":      resourceSelfSignedCACertOnePass(),
 			"cfssl_full_chain_cert":                  resourceFullChain(),
 			"cfssl_full_chain_multiple_cert":         resourceFullChainMultipleCert(),
 			"cfssl_full_chain_multiple_cert_onepass": resourceFullChainMultipleCertOnePassCaKey(),
@@ -94,6 +95,9 @@ type Meta struct {
 func NewMeta(d *schema.ResourceData) (*Meta, error) {
 	m := &Meta{data: d}
 	client, err := m.NewOnePassClient()
+	if err != nil {
+		return nil, err
+	}
 	m.onePassClient = client
 	return m, err
 }

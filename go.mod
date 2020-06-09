@@ -9,4 +9,5 @@ require (
 	github.com/hashicorp/terraform v0.12.1
 	github.com/jmoiron/sqlx v1.2.0 // indirect
 	github.com/kalaspuffar/base64url v0.0.0-20171121144659-483af17b794c
+	github.com/matryer/try v0.0.0-20161228173917-9ac251b645a2
 )

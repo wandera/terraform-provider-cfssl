@@ -20,7 +20,7 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 )
 
-var version string = "0.7.1"
+var version string = "1.1.0"
 
 // Provider returns a terraform.ResourceProvider.
 func Provider() terraform.ResourceProvider {
@@ -50,6 +50,12 @@ func Provider() terraform.ResourceProvider {
 				Default:     "my",
 				DefaultFunc: schema.EnvDefaultFunc("OP_SUBDOMAIN", nil),
 				Description: "Set alternative subdomain for 1password. From [subdomain].1password.com",
+			},
+			"onepassword_device_id": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("OP_DEVICE", nil),
+				Description: "Set alternative device id for 1password.",
 			},
 		},
 
@@ -84,6 +90,7 @@ type OnePassClient struct {
 	Subdomain string
 	PathToOp  string
 	Session   string
+	Uuid      string
 	mutex     *sync.Mutex
 }
 
@@ -220,6 +227,7 @@ func (m *Meta) NewOnePassClient() (*OnePassClient, error) {
 	email := m.data.Get("onepassword_email").(string)
 	password := m.data.Get("onepassword_password").(string)
 	secretKey := m.data.Get("onepassword_secret_key").(string)
+	uuid := m.data.Get("onepassword_device_id").(string)
 	session := ""
 
 	if email == "" || password == "" || secretKey == "" {
@@ -248,6 +256,7 @@ func (m *Meta) NewOnePassClient() (*OnePassClient, error) {
 		Subdomain: subdomain,
 		PathToOp:  bin,
 		Session:   session,
+		Uuid:      uuid,
 		mutex:     &sync.Mutex{},
 	}
 
@@ -262,6 +271,11 @@ func (m *Meta) NewOnePassClient() (*OnePassClient, error) {
 
 func (o *OnePassClient) SignIn() error {
 	cmd := exec.Command(o.PathToOp, "signin", o.Subdomain, o.Email, o.SecretKey, "--output=raw")
+
+	if o.Uuid != "" {
+		cmd.Env = append(cmd.Env, "OP_DEVICE=" + o.Uuid)
+	}
+
 	stdin, err := cmd.StdinPipe()
 	if err != nil {
 		return err

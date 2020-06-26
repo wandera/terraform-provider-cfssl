@@ -67,9 +67,11 @@ func Provider() terraform.ResourceProvider {
 			"cfssl_full_chain_cert":                  resourceFullChain(),
 			"cfssl_full_chain_multiple_cert":         resourceFullChainMultipleCert(),
 			"cfssl_full_chain_multiple_cert_onepass": resourceFullChainMultipleCertOnePassCaKey(),
+			"cfssl_onepassword_item_secure_note":     resourceItemSecureNote(),
 		},
-
-		DataSourcesMap: map[string]*schema.Resource{},
+		DataSourcesMap: map[string]*schema.Resource{
+			"cfssl_onepassword_item_secure_note": dataSourceItemSecureNote(),
+		},
 
 		ConfigureFunc: providerConfigure,
 	}
